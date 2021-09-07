@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+require_relative 'mavlink'
+
+ml = Mavlink.new ARGV[0]
+
+puts "#NOTE: #{Time.now}"
+ml.request_params.sort { |(n1, _),(n2, _)| n1 <=> n2 }.each { |n,v| puts "#{n},#{v}" }
