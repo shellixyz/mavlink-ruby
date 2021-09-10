@@ -266,7 +266,6 @@ class Mavlink
         @keep_pool = SyncLookup.new ikeep_pool
         @wait_for_message_conds = Array.new
         listen
-        #binding.pry
     end
 
     def listen
@@ -323,14 +322,10 @@ class Mavlink
                     if ibuf.bytesize == needed_bytes
                         header = MavlinkProtocol.decode_header ibuf, proto_version
                         needed_bytes += header.payload_size + CHECKSUM_SIZE
-                        #ibuf << sp.read(needed_bytes - ibuf.bytesize) if ibuf.bytesize < needed_bytes
                         while ibuf.bytesize < needed_bytes
                             data = sp.read(needed_bytes - ibuf.bytesize)
-                            #puts "waiting for #{needed_bytes} got #{ibuf.bytesize}"
                             ibuf << data if data
-                            #ibuf << sp.read(needed_bytes - ibuf.bytesize)
                         end
-                        #rcksum = ibuf.byteslice(header_size + header.payload_size, CHECKSUM_SIZE).tap { |x| if x.nil?; pp header; pp header_size; pp ibuf; pp ibuf.bytesize; end  }.unpack1 'S'
                         rcksum = ibuf.byteslice(header_size + header.payload_size, CHECKSUM_SIZE).unpack1 'S'
                         if message = MavlinkProtocol.messages.find_by_id(header.msgid)
                             header_data = ibuf.byteslice 0, header_size

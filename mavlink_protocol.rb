@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'nokogiri'
-require 'pry'
 require 'crc'
 
 # TODO: add param attributes: label, units, minValue, maxValue
@@ -401,5 +400,6 @@ class MavlinkProtocol
 end
 
 if $0 == __FILE__
+    require 'pry'
     MavlinkProtocol.pry
 end
