@@ -58,7 +58,7 @@ class Mavlink
 
     end
 
-    def initialize serial_device, serial_baud = 115200
+    def initialize serial_device = '/dev/ttyACM0', serial_baud = 115200
         @serial_device = serial_device
         @serial_baud = 115200
         @wait_timeout = 10
