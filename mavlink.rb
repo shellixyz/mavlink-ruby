@@ -230,11 +230,11 @@ class Mavlink
         command_long :MAV_CMD_PREFLIGHT_STORAGE, 2, 0, 0
     end
 
-    def reboot_fc
+    def reboot_fc reopen: true
         command_long :MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, 1
         close
         sleep 10
-        _init
+        _init if reopen
         nil
     end
 
