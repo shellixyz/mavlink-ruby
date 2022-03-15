@@ -11,6 +11,11 @@ class Mavlink
     CHECKSUM_SIZE = MavlinkProtocol::CHECKSUM_SIZE
     Packet = Struct.new :message, :content
 
+    GET_SET_PARAM_TIMEOUT = 0.5
+
+    class FailedToGetParam < StandardError; end
+    class FailedToSetParam < StandardError; end
+
     include MavlinkHelpers
 
     class SyncLookup
@@ -126,9 +131,11 @@ class Mavlink
         cond = add_wait_cond_for_message :PARAM_VALUE, param_id: name.to_s
         send_message :PARAM_REQUEST_READ, 1, 1, 1, name.to_s, -1
         irecv_pool.synchronize do
-            cond.wait
+            cond.wait GET_SET_PARAM_TIMEOUT
             remove_wait_cond_for_message cond
-            irecv_pool[:PARAM_VALUE].content[:param_value]
+            message = irecv_pool[:PARAM_VALUE]
+            raise FailedToGetParam, "Failed to get param value for #{name}, it might not exist" if message.nil?
+            message.content[:param_value]
         end
     end
 
@@ -138,9 +145,16 @@ class Mavlink
         cond = add_wait_cond_for_message :PARAM_VALUE, param_id: name.to_s
         send_message :PARAM_SET, 1, 1, 1, name.to_s, value, param_type
         irecv_pool.synchronize do
-            cond.wait
+            cond.wait GET_SET_PARAM_TIMEOUT
             remove_wait_cond_for_message cond
-            irecv_pool[:PARAM_VALUE].content[:param_value]
+            message = irecv_pool[:PARAM_VALUE]
+            raise FailedToSetParam, "Failed to set param #{name}=#{value}, it might not exist" if message.nil?
+            message.content[:param_value].tap do |set_value|
+                # check doesn't seem to work
+                #if set_value > value + 0.000001 or set_value < value - 0.000001
+                    #raise "param #{name}: set value (#{set_value}) different from what was requested (#{value})"
+                #end
+            end
         end
     end
 
