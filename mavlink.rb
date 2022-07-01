@@ -268,7 +268,8 @@ class Mavlink
     private
 
     def _init
-        @sp = SerialPort.new serial_device, baud: serial_baud
+        @sp = SerialPort.new serial_device
+        sp.baud = serial_baud
         sp.flow_control = SerialPort::NONE
         sp.flush_input
         @ibuf = String.new
