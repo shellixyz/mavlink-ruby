@@ -111,7 +111,7 @@ class Mavlink
     def send_message name, seq, *values
         message = MavlinkProtocol.messages[name]
         raise ArgumentError, "invalid message name: #{name}" if message.nil?
-        sp.write message.encode_v1(seq, *values)
+        sp.write message.encode_v2(seq, *values)
         nil
     end
 
@@ -129,8 +129,9 @@ class Mavlink
 
     def param_value name
         cond = add_wait_cond_for_message :PARAM_VALUE, param_id: name.to_s
-        send_message :PARAM_REQUEST_READ, 1, 1, 1, name.to_s, -1
         irecv_pool.synchronize do
+            irecv_pool.delete :PARAM_VALUE
+            send_message :PARAM_REQUEST_READ, 1, 1, 1, name.to_s, -1
             cond.wait GET_SET_PARAM_TIMEOUT
             remove_wait_cond_for_message cond
             message = irecv_pool[:PARAM_VALUE]
@@ -143,8 +144,9 @@ class Mavlink
         param_value name unless @param_type_cache.has_key? name.to_s
         param_type = @param_type_cache[name.to_s]
         cond = add_wait_cond_for_message :PARAM_VALUE, param_id: name.to_s
-        send_message :PARAM_SET, 1, 1, 1, name.to_s, value, param_type
         irecv_pool.synchronize do
+            irecv_pool.delete :PARAM_VALUE
+            send_message :PARAM_SET, 1, 1, 1, name.to_s, value, param_type
             cond.wait GET_SET_PARAM_TIMEOUT
             remove_wait_cond_for_message cond
             message = irecv_pool[:PARAM_VALUE]
@@ -265,6 +267,8 @@ class Mavlink
     attr_reader :recv_pool, :keep_pool, :params, :serial_device, :serial_baud
     attr_accessor :wait_timeout
 
+    attr_reader :sp, :ibuf, :listen_thread, :keep_all_messages_names, :irecv_pool, :ikeep_pool
+
     private
 
     def _init
@@ -357,8 +361,6 @@ class Mavlink
             end
         end
     end
-
-    attr_reader :sp, :ibuf, :listen_thread, :keep_all_messages_names, :irecv_pool, :ikeep_pool
 
 end
 
