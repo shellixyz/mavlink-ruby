@@ -111,7 +111,7 @@ class Mavlink
     def send_message name, seq, *values
         message = MavlinkProtocol.messages[name]
         raise ArgumentError, "invalid message name: #{name}" if message.nil?
-        sp.write message.encode_v2(seq, *values)
+        sp.write message.encode_v2(seq, *values).tap {|x| pp x.unpack('C*') if DEBUG }
         nil
     end
 
@@ -293,6 +293,7 @@ class Mavlink
             loop do
                 packet = _read_packet
                 message_name = packet.message.name
+                puts "#{Time.now} -- #{message_name}: #{packet.content.inspect}" if DEBUG
                 irecv_pool.synchronize do
                     irecv_pool[message_name] = packet
                     @param_type_cache[packet.content[:param_id]] = packet.content[:param_type] if message_name == :PARAM_VALUE
