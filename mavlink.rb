@@ -6,6 +6,8 @@ require 'monitor'
 require_relative 'mavlink_protocol'
 require_relative 'mavlink_helpers'
 
+DEBUG = false
+
 class Mavlink
 
     CHECKSUM_SIZE = MavlinkProtocol::CHECKSUM_SIZE
