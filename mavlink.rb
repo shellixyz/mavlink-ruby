@@ -117,6 +117,19 @@ class Mavlink
         nil
     end
 
+    def send_message_wait_for_reply in_message_name, out_message_name, seq, *values
+        cond = add_wait_cond_for_message in_message_name
+        monitoring_data = irecv_pool.synchronize do
+            irecv_pool.delete in_message_name
+            send_message out_message_name, seq, *values
+            cond.wait wait_timeout
+            remove_wait_cond_for_message cond
+            message = irecv_pool[in_message_name]
+            raise Error::Timeout if message.nil?
+            message.content
+        end
+    end
+
     def request_params # TODO: rewrite with conditions
         keep_all_messages :PARAM_VALUE do
             send_message :PARAM_REQUEST_LIST, 1, 1, 1
