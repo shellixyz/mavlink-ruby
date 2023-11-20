@@ -305,7 +305,7 @@ class MavlinkProtocol
 
         def encode_v2 seq, *values
             payload = self.class.compact_v2_payload encode_payload(*values)
-            header = HeaderV2.new(payload.bytesize, 0, 0, seq, 1, 1, id).pack
+            header = HeaderV2.new(payload.bytesize, 0, 0, seq, 0xff, 0xbe, id).pack
             crc = MavlinkProtocol.packed_crc header + payload + crc_extra
             V2_MARKER.chr + header + payload + crc
         end
