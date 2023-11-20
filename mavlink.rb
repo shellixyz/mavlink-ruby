@@ -65,10 +65,12 @@ class Mavlink
 
     end
 
-    def initialize serial_device = '/dev/ttyACM0', serial_baud = 115200
+    def initialize serial_device = '/dev/ttyACM0', serial_baud = 115200, sysid: 1, compid: 1
         @serial_device = serial_device
         @serial_baud = serial_baud
         @wait_timeout = 10
+        @sysid = sysid
+        @compid = compid
         _init
     end
 
@@ -132,7 +134,7 @@ class Mavlink
 
     def request_params # TODO: rewrite with conditions
         keep_all_messages :PARAM_VALUE do
-            send_message :PARAM_REQUEST_LIST, 1, 1, 1
+            send_message :PARAM_REQUEST_LIST, 1, sysid, compid
             loop { break unless keep_pool[:PARAM_VALUE].empty? } # wait for one param value
             param_count = keep_pool[:PARAM_VALUE].first.content[:param_count]
             loop { break if keep_pool[:PARAM_VALUE].map { |p| p.content[:param_id] }.uniq.count == param_count }
@@ -146,7 +148,7 @@ class Mavlink
         cond = add_wait_cond_for_message :PARAM_VALUE, param_id: name.to_s
         irecv_pool.synchronize do
             irecv_pool.delete :PARAM_VALUE
-            send_message :PARAM_REQUEST_READ, 1, 1, 1, name.to_s, -1
+            send_message :PARAM_REQUEST_READ, 1, sysid, compid, name.to_s, -1
             cond.wait GET_SET_PARAM_TIMEOUT
             remove_wait_cond_for_message cond
             message = irecv_pool[:PARAM_VALUE]
@@ -161,7 +163,7 @@ class Mavlink
         cond = add_wait_cond_for_message :PARAM_VALUE, param_id: name.to_s
         irecv_pool.synchronize do
             irecv_pool.delete :PARAM_VALUE
-            send_message :PARAM_SET, 1, 1, 1, name.to_s, value, param_type
+            send_message :PARAM_SET, 1, sysid, compid, name.to_s, value, param_type
             cond.wait GET_SET_PARAM_TIMEOUT
             remove_wait_cond_for_message cond
             message = irecv_pool[:PARAM_VALUE]
@@ -231,7 +233,7 @@ class Mavlink
     def command_long_noack command, *params
         raise ArgumentError, "too many params: #{params.count} (max 7)" if params.count > 7
         params.append *[0]*(7-params.count)
-        send_message :COMMAND_LONG, 1, 1, 1, command, 0, *params
+        send_message :COMMAND_LONG, 1, sysid, compid, command, 0, *params
     end
 
     def command_long command, *params
@@ -280,7 +282,7 @@ class Mavlink
     end
 
     attr_reader :recv_pool, :keep_pool, :params, :serial_device, :serial_baud
-    attr_accessor :wait_timeout
+    attr_accessor :wait_timeout, :sysid, :compid
 
     attr_reader :sp, :ibuf, :listen_thread, :keep_all_messages_names, :irecv_pool, :ikeep_pool
 
