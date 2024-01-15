@@ -380,6 +380,25 @@ class Mavlink
         end
     end
 
+    def self.decode_packet packet_data
+        packet_data = packet_data.clone
+        packet_data = packet_data.unpack 'C*' unless packet_data.is_a?(Array)
+        marker_byte = packet_data.shift
+        packet_data = packet_data.pack 'C*'
+        proto_version = MavlinkProtocol::MARKERS.invert[marker_byte]
+        header_size = MavlinkProtocol::HEADER_SIZE[proto_version]
+        header = MavlinkProtocol.decode_header packet_data, proto_version
+        rcksum = packet_data.byteslice(header_size + header.payload_size, CHECKSUM_SIZE).unpack1 'S'
+        message = MavlinkProtocol.messages.find_by_id(header.msgid)
+        raise "message not found for msgid: #{header.msgid}" if message.nil?
+        header_data = packet_data.byteslice 0, header_size
+        payload = packet_data.byteslice header_size, header.payload_size
+        ccksum = MavlinkProtocol.crc header_data + payload + message.crc_extra
+        raise "bad CRC (expected #{rcksum}, got #{ccksum}" if rcksum != ccksum
+        content = message.decode payload
+        Packet.new(message, content)
+    end
+
 end
 
 if $0 == __FILE__
