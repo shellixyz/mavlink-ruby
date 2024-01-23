@@ -13,7 +13,6 @@ class Mavlink
     CHECKSUM_SIZE = MavlinkProtocol::CHECKSUM_SIZE
     Packet = Struct.new :message, :content
 
-    GET_SET_PARAM_TIMEOUT = 0.5
 
     class FailedToGetParam < StandardError; end
     class FailedToSetParam < StandardError; end
@@ -149,7 +148,7 @@ class Mavlink
         irecv_pool.synchronize do
             irecv_pool.delete :PARAM_VALUE
             send_message :PARAM_REQUEST_READ, 1, sysid, compid, name.to_s, -1
-            cond.wait GET_SET_PARAM_TIMEOUT
+            cond.wait wait_timeout
             remove_wait_cond_for_message cond
             message = irecv_pool[:PARAM_VALUE]
             raise FailedToGetParam, "Failed to get param value for #{name}, it might not exist" if message.nil?
@@ -164,7 +163,7 @@ class Mavlink
         irecv_pool.synchronize do
             irecv_pool.delete :PARAM_VALUE
             send_message :PARAM_SET, 1, sysid, compid, name.to_s, value, param_type
-            cond.wait GET_SET_PARAM_TIMEOUT
+            cond.wait wait_timeout
             remove_wait_cond_for_message cond
             message = irecv_pool[:PARAM_VALUE]
             raise FailedToSetParam, "Failed to set param #{name}=#{value}, it might not exist" if message.nil?
