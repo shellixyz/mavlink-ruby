@@ -403,7 +403,7 @@ end
 if $0 == __FILE__
     require 'pry'
     port = ARGV[0] || '/dev/ttyACM0'
-    baud = ARGV[1] || 115200
+    baud = Integer(ARGV[1]) || 115200
     mav = Mavlink.new port, baud
     mav.pry
 end
